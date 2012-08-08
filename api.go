@@ -8,6 +8,8 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
+
+	"net/url"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -29,6 +31,20 @@ func (self *Api) httpGet(url string) (body []byte, err error) {
 	}
 	defer response.Body.Close()
 	return ioutil.ReadAll(response.Body)
+}
+
+func (self *Api) httpPost(url string, values url.Values) (body []byte, err error) {
+
+	url = url + "?apikey=" + self.Key + "&version=1&format=json"
+	r, err := http.PostForm(url, values)
+	if err != nil {
+		fmt.Printf("error posting values: %s", err)
+		return
+	}
+	body, err = ioutil.ReadAll(r.Body)
+	r.Body.Close()
+	
+	return body, err
 }
 
 func (self *Api) Call(resourceFormat string, resourceArg interface{}, result ErrorReporter) (err error) {
@@ -128,4 +144,119 @@ func (self *Api) User(id ID, out interface{}) (err error) {
 	}
 	result := Result{User: out}
 	return self.Call("user/%v", id, &result)
+}
+
+func (self *Api) HostId(username string) (ids []ID, err error) {
+	type Result struct {
+		ResultBase
+		Ids []ID `json:"ids"`
+	}
+	var result Result
+	err = self.Call_debug("user/find?username=%v", username, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result.Ids, nil
+}
+
+func (self *Api) CreateEvent(hostId string, title string, country string, date string, identifier string) (id string, err error) {
+	type Result struct {
+		Success bool `json:"success"`
+		Errors []string `json:"errors"`
+		Id int64 `json:"id"`
+	}
+	var result Result
+	
+
+	posturl := "http://www.amiando.com/api/event/create"
+
+	date = strings.Replace(date," ", "T",-1)
+
+	// fmt.Println(hostId + "," + title + "," + country + "," + identifier + "," + date)
+	values := url.Values{ "hostId": {hostId}, 
+				"title": {title},
+				"country": {country},
+				"selectedDate": {date},
+				"identifier": {identifier},
+			}
+
+	j, err := self.httpPost(posturl, values)
+	if err != nil {
+		return "", err
+	}
+	// fmt.Println("Result:\n", PrettifyJSON(j))
+
+	err = json.Unmarshal(j, &result)
+	if err != nil {
+		return "", err
+	}
+
+	if result.Success || len(result.Errors) == 0 {
+		err = nil
+	} else {
+		err = &Error{result.Errors}
+	}
+	
+	// fmt.Printf("%#v\n", result.Errors)
+
+	if err != nil {
+		return "", err
+	}
+ 	// fmt.Print("event id: %v", result.Id)
+ 	
+ 	return string(result.Id), nil
+ 	
+	
+ 	
+}
+
+func CreateAPIKey(name string) (key string, err error) {
+	type Result struct {
+		Success bool `json:"success"`
+		Errors []string `json:"errors"`
+		Id int64 `json:"id"`
+	}
+	var result Result
+	
+
+	posturl := "http://www.amiando.com/api/apiKey/create"
+
+	values := url.Values{ "name": {name}}
+
+	url := posturl + "?version=1&format=json"
+	r, err := http.PostForm(url, values)
+	if err != nil {
+		fmt.Printf("error posting values: %s", err)
+		return
+	}
+	j, err := ioutil.ReadAll(r.Body)
+	r.Body.Close()
+
+	if err != nil {
+		return "", err
+	}
+	fmt.Println("Result:\n", PrettifyJSON(j))
+
+	err = json.Unmarshal(j, &result)
+	if err != nil {
+		return "", err
+	}
+
+	if result.Success || len(result.Errors) == 0 {
+		err = nil
+	} else {
+		err = &Error{result.Errors}
+	}
+	
+	fmt.Printf("%#v\n", result.Errors)
+
+	if err != nil {
+		return "", err
+	}
+ 	fmt.Print("event id: %v", result.Id)
+ 	
+ 	return string(result.Id), nil
+ 	
+	
+ 	
 }

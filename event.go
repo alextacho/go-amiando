@@ -88,6 +88,54 @@ func NewEvent(api *Api, identifier string) (event *Event, err error) {
 	return event, nil
 }
 
+func CreateNewEvent(api *Api, identifier string) (event *Event, err error) {
+	event = &Event{
+		Api:        api,
+		Identifier: identifier,
+	}
+
+	// Search for event with identifier
+	type Result struct {
+		ResultBase
+		Ids []ID `json:"ids"`
+	}
+	var result Result
+	err = event.Api.Call("event/find?identifier=%s", identifier, &result)
+	if err != nil {
+		return nil, err
+	}
+	if len(result.Ids) == 0 {
+		return nil, fmt.Errorf("No event found for identifier '%s'", identifier)
+	}
+	// Find event with exact match of identifier
+	// because API find returns all events whose identifiers include the searched one
+	for _, id := range result.Ids {
+		type Result struct {
+			ResultBase
+			Event BasicEventData `json:"event"`
+		}
+		var result Result
+		err = event.Api.Call("event/%v", id, &result)
+		if err != nil {
+			return nil, err
+		}
+		if result.Event.Identifier == identifier {
+			event.InternalID = id
+			break
+		}
+	}
+	if event.InternalID == 0 {
+		return nil, fmt.Errorf("No exact match found for identifier '%s'", identifier)
+	}
+
+	err = event.Read(event)
+	if err != nil {
+		return nil, err
+	}
+	
+	return event, nil
+}
+
 func (self *Event) Read(out ErrorReporter) (err error) {
 	return self.Api.Call("event/%v", self.InternalID, out)
 }
@@ -176,3 +224,5 @@ func (self *Event) EnumParticipants() (<-chan *Participant, <-chan error) {
 
 	return p, e
 }
+
+

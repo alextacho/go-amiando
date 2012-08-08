@@ -59,10 +59,45 @@ func (self *UserData) Address() *Address {
 	return addr
 }
 
+// func (self *UserData) Product() *Product {
+	// if self.Type != UserDataProduct {
+	// 	return nil
+	// }
+	// data := self.Value.(map[string]interface{})
+	// var products []Product
+
+	// for i:=0; i<len(data); i++ {
+		
+	// 	product := new(Product)
+	// 	if v, ok := data[i]["name"]; ok {
+	// 		product.Product = v.(string)
+	// 	}
+	// 	if v, ok := data[i]["price"]; ok {
+	// 		product.Price = v.(string)
+	// 	}
+	// 	if v, ok := data[i]["available"]; ok {
+	// 		product.Available = v.(string)
+	// 	}
+	// 	if v, ok := data[i]["description"]; ok {
+	// 		product.Description = v.(string)
+	// 	}
+	// 	products = append(products, product)
+	// }
+
+	// return products
+// }
+
 type Address struct {
 	Street  string
 	Street2 string
 	City    string
 	ZipCode string
 	Country string
+}
+
+type Product struct {
+	Product  string
+	Price string
+	Available    string
+	Description string
 }
