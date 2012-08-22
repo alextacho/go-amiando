@@ -163,7 +163,7 @@ func (self *Api) CreateEvent(hostId string, title string, country string, date s
 	type Result struct {
 		Success bool `json:"success"`
 		Errors []string `json:"errors"`
-		Id int64 `json:"id"`
+		Id ID `json:"id"`
 	}
 	var result Result
 	
@@ -204,59 +204,62 @@ func (self *Api) CreateEvent(hostId string, title string, country string, date s
 	}
  	// fmt.Print("event id: %v", result.Id)
  	
- 	return string(result.Id), nil
+ 	return result.Id.String(), nil
  	
 	
  	
 }
 
-func CreateAPIKey(name string) (key string, err error) {
+func (self *Api) ActivateEvent(id string) error {
 	type Result struct {
 		Success bool `json:"success"`
 		Errors []string `json:"errors"`
-		Id int64 `json:"id"`
 	}
 	var result Result
 	
+	posturl := "https://www.amiando.com/api/event/"+id+"/activate"
 
-	posturl := "http://www.amiando.com/api/apiKey/create"
+	values := url.Values{}
 
-	values := url.Values{ "name": {name}}
 
-	url := posturl + "?version=1&format=json"
-	r, err := http.PostForm(url, values)
+	j, err := self.httpPost(posturl, values)
 	if err != nil {
-		fmt.Printf("error posting values: %s", err)
-		return
+		return err
 	}
-	j, err := ioutil.ReadAll(r.Body)
-	r.Body.Close()
 
-	if err != nil {
-		return "", err
-	}
 	fmt.Println("Result:\n", PrettifyJSON(j))
 
 	err = json.Unmarshal(j, &result)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if result.Success || len(result.Errors) == 0 {
-		err = nil
-	} else {
-		err = &Error{result.Errors}
+		return nil
 	}
-	
-	fmt.Printf("%#v\n", result.Errors)
+	return &Error{result.Errors}
+}
 
-	if err != nil {
-		return "", err
+func TestAmiandoWebHook(posturl string) error {
+
+	values := url.Values{
+		"eventId" : {"123"},
+		"eventIdentifier" : {"startuplivevienna7"},
+		"numberOfTickets" : {"1"},
+		"ticketFirstName0" : {"Alex"},
+		"ticketLastName0" : {"Tascha"},
+		"ticketEmail0" : {"hemmshoe@gmail.com"},
 	}
- 	fmt.Print("event id: %v", result.Id)
- 	
- 	return string(result.Id), nil
- 	
-	
- 	
+
+	fmt.Printf("posting to: %s", posturl)
+
+	_, err := http.PostForm(posturl, values)
+	if err != nil {
+		fmt.Printf("error posting values: %s", err)
+		return err
+	}
+
+	fmt.Printf("posting done")
+
+	return err
 }

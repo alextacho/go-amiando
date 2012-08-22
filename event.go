@@ -32,6 +32,7 @@ type BasicEventData struct {
 	Latitude               float64 `json:"latitude"`
 }
 
+
 type Event struct {
 	ResultBase
 	Data       BasicEventData `json:"event"`
@@ -39,6 +40,7 @@ type Event struct {
 	Identifier string         `json:"-"`
 	InternalID ID             `json:"-"`
 }
+
 
 func NewEvent(api *Api, identifier string) (event *Event, err error) {
 	event = &Event{
