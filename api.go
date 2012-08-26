@@ -244,11 +244,14 @@ func TestAmiandoWebHook(posturl string) error {
 
 	values := url.Values{
 		"eventId" : {"123"},
-		"eventIdentifier" : {"startuplivevienna7"},
-		"numberOfTickets" : {"1"},
+		"eventIdentifier" : {"test_startuplivevienna7"},
+		"numberOfTickets" : {"2"},
 		"ticketFirstName0" : {"Alex"},
 		"ticketLastName0" : {"Tascha"},
 		"ticketEmail0" : {"hemmshoe@gmail.com"},
+		"ticketFirstName1" : {"Xandl"},
+		"ticketLastName1" : {"Mann"},
+		"ticketEmail1" : {"hemmshoe@gmail.com"},
 	}
 
 	fmt.Printf("posting to: %s", posturl)

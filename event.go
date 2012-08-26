@@ -1,6 +1,9 @@
 package amiando
 
-import "fmt"
+import (
+	"strconv"
+	"fmt"
+)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Event
@@ -227,4 +230,63 @@ func (self *Event) EnumParticipants() (<-chan *Participant, <-chan error) {
 	return p, e
 }
 
+func (self *Event) EnumParticipantsByPayment(payment string) (<-chan *Participant, <-chan error) {
+	p := make(chan *Participant, 32)
+	e := make(chan error, 1)
+	
+	var paymentID ID
+	paymentInt64,err := strconv.ParseInt(payment, 10, 64)
 
+	if err!=nil {
+		e <- err
+		return p, e 
+	}
+	paymentID = ID(paymentInt64)
+
+	go func() {
+		defer close(p)
+		defer close(e)
+
+		
+		ticketIDs, err := self.Api.TicketIDsOfPayment(paymentID)
+		if err != nil {
+			e <- err
+			return
+		}
+
+		for i, ticketID := range ticketIDs {
+			participant := &Participant{
+				Event:     self,
+				PaymentID: paymentID,
+				TicketID:  ticketID,
+			}
+
+			err = self.Api.Payment(paymentID, participant)
+			if err != nil {
+				e <- err
+				return
+			}
+
+			// Save payment UserData because it will be overwritten by the ticket UserData 
+			userData := participant.UserData
+			// Delete payment user data to avoid conflicts
+			// with ticket user-data
+			participant.UserData = nil
+
+			err = self.Api.Ticket(ticketID, participant)
+			if err != nil {
+				e <- err
+				return
+			}
+
+			// If there is no ticket UserData use payment UserData for the first ticket
+			if i == 0 && len(participant.UserData) == 0 {
+				participant.UserData = userData
+			}
+
+			p <- participant
+		}
+	}()
+
+	return p, e
+}
